@@ -37,17 +37,21 @@ def process_files(source_sheet_id, source_sheet_name, target_sheet_id, target_sh
                             break
 
                     if not match_found:
-                        print(f'No match found in target sheet for combined string: {combined_values}')
+                        st.write(f'No match found in target sheet for combined string: {combined_values}')
 
     except Exception as e:
-        print(f'Error: {e}')
+        st.write(f'Error: {e}')
 
-# Example usage
-source_sheet_id = '1tgaca6MmB3YIKXblBu6c_jIWrBAeWwmarv7LAcCCylU'
-source_sheet_name = 'Ark1'
-target_sheet_id = '1u_YYF_SafcDt8AzuK_mQdAU7vek49txPPlmxC9E_1zo'
-target_sheet_name = 'Description'
-specific_values = ['Bacnet_device']
-tfm_sys = 360
+# Streamlit app
+st.title('Google Sheets Processing App')
 
-process_files(source_sheet_id, source_sheet_name, target_sheet_id, target_sheet_name, specific_values, tfm_sys)
+source_sheet_id = st.text_input('Source Sheet ID')
+source_sheet_name = st.text_input('Source Sheet Name')
+target_sheet_id = st.text_input('Target Sheet ID')
+target_sheet_name = st.text_input('Target Sheet Name')
+specific_values = st.text_input('Specific Values (comma-separated)', 'Bacnet_device').split(',')
+tfm_sys = st.number_input('TFM System Value', min_value=0, value=360)
+
+if st.button('Process Files'):
+    process_files(source_sheet_id, source_sheet_name, target_sheet_id, target_sheet_name, specific_values, tfm_sys)
+    st.write('Processing complete.')
