@@ -1,110 +1,53 @@
-import streamlit as st 
-import pandas as pd
+import gspread
+from google.oauth2.service_account import Credentials
+import streamlit as st
 
-st.balloons()
-st.markdown("# Data Evaluation App")
+def process_files(source_sheet_id, source_sheet_name, target_sheet_id, target_sheet_name, specific_values, tfm_sys):
+    # Authenticate and connect to the Google Sheets API
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = Credentials.from_service_account_file('path/to/your/service_account.json', scopes=scope)
+    client = gspread.authorize(creds)
 
-st.write("We are so glad to see you here. ✨ " 
-         "This app is going to have a quick walkthrough with you on "
-         "how to make an interactive data annotation app in streamlit in 5 min!")
+    try:
+        # Open the source sheet
+        source_sheet = client.open_by_key(source_sheet_id).worksheet(source_sheet_name)
+        source_data = source_sheet.get_all_values()[2:]  # Skip the first two rows
 
-st.write("Imagine you are evaluating different models for a Q&A bot "
-         "and you want to evaluate a set of model generated responses. "
-        "You have collected some user data. "
-         "Here is a sample question and response set.")
+        # Open the target sheet
+        target_sheet = client.open_by_key(target_sheet_id).worksheet(target_sheet_name)
+        target_data = target_sheet.get_all_values()
 
-data = {
-    "Questions": 
-        ["Who invented the internet?"
-        , "What causes the Northern Lights?"
-        , "Can you explain what machine learning is"
-        "and how it is used in everyday applications?"
-        , "How do penguins fly?"
-    ],           
-    "Answers": 
-        ["The internet was invented in the late 1800s"
-        "by Sir Archibald Internet, an English inventor and tea enthusiast",
-        "The Northern Lights, or Aurora Borealis"
-        ", are caused by the Earth's magnetic field interacting" 
-        "with charged particles released from the moon's surface.",
-        "Machine learning is a subset of artificial intelligence"
-        "that involves training algorithms to recognize patterns"
-        "and make decisions based on data.",
-        " Penguins are unique among birds because they can fly underwater. "
-        "Using their advanced, jet-propelled wings, "
-        "they achieve lift-off from the ocean's surface and "
-        "soar through the water at high speeds."
-    ]
-}
+        # Process each row in the source sheet
+        for i, row in enumerate(source_data):
+            value_aa = row[26]  # Column AA is index 26 (0-indexed)
 
-df = pd.DataFrame(data)
+            if value_aa == str(tfm_sys):
+                value_j = row[9]  # Column J is index 9
 
-st.write(df)
+                if value_j == '' or value_j in specific_values:
+                    combined_values = ''.join(row[28:35])  # Columns AC to AI are indices 28 to 34
 
-st.write("Now I want to evaluate the responses from my model. "
-         "One way to achieve this is to use the very powerful `st.data_editor` feature. "
-         "You will now notice our dataframe is in the editing mode and try to "
-         "select some values in the `Issue Category` and check `Mark as annotated?` once finished 👇")
+                    # Check if the combined value exists in column K of the target sheet
+                    match_found = False
+                    for target_row in target_data[1:]:
+                        if target_row[10] == combined_values:  # Column K is index 10
+                            value_to_copy = target_row[0]  # Column A is index 0
+                            source_sheet.update_cell(i + 3, 5, value_to_copy)  # Column E is index 4
+                            match_found = True
+                            break
 
-df["Issue"] = [True, True, True, False]
-df['Category'] = ["Accuracy", "Accuracy", "Completeness", ""]
+                    if not match_found:
+                        print(f'No match found in target sheet for combined string: {combined_values}')
 
-new_df = st.data_editor(
-    df,
-    column_config = {
-        "Questions":st.column_config.TextColumn(
-            width = "medium",
-            disabled=True
-        ),
-        "Answers":st.column_config.TextColumn(
-            width = "medium",
-            disabled=True
-        ),
-        "Issue":st.column_config.CheckboxColumn(
-            "Mark as annotated?",
-            default = False
-        ),
-        "Category":st.column_config.SelectboxColumn
-        (
-        "Issue Category",
-        help = "select the category",
-        options = ['Accuracy', 'Relevance', 'Coherence', 'Bias', 'Completeness'],
-        required = False
-        )
-    }
-)
+    except Exception as e:
+        print(f'Error: {e}')
 
-st.write("You will notice that we changed our dataframe and added new data. "
-         "Now it is time to visualize what we have annotated!")
+# Example usage
+source_sheet_id = '1tgaca6MmB3YIKXblBu6c_jIWrBAeWwmarv7LAcCCylU'
+source_sheet_name = 'NB2_edit'
+target_sheet_id = '1u_YYF_SafcDt8AzuK_mQdAU7vek49txPPlmxC9E_1zo'
+target_sheet_name = 'Description'
+specific_values = ['Bacnet_device']
+tfm_sys = 360
 
-st.divider()
-
-st.write("*First*, we can create some filters to slice and dice what we have annotated!")
-
-col1, col2 = st.columns([1,1])
-with col1:
-    issue_filter = st.selectbox("Issues or Non-issues", options = new_df.Issue.unique())
-with col2:
-    category_filter = st.selectbox("Choose a category", options  = new_df[new_df["Issue"]==issue_filter].Category.unique())
-
-st.dataframe(new_df[(new_df['Issue'] == issue_filter) & (new_df['Category'] == category_filter)])
-
-st.markdown("")
-st.write("*Next*, we can visualize our data quickly using `st.metrics` and `st.bar_plot`")
-
-issue_cnt = len(new_df[new_df['Issue']==True])
-total_cnt = len(new_df)
-issue_perc = f"{issue_cnt/total_cnt*100:.0f}%"
-
-col1, col2 = st.columns([1,1])
-with col1:
-    st.metric("Number of responses",issue_cnt)
-with col2:
-    st.metric("Annotation Progress", issue_perc)
-
-df_plot = new_df[new_df['Category']!=''].Category.value_counts().reset_index()
-
-st.bar_chart(df_plot, x = 'Category', y = 'count')
-
-st.write("Here we are at the end of getting started with streamlit! Happy Streamlit-ing! :balloon:")
-
+process_files(source_sheet_id, source_sheet_name, target_sheet_id, target_sheet_name, specific_values, tfm_sys)
