@@ -43,14 +43,15 @@ def process_files(source_sheet_id, source_sheet_name, target_sheet_id, target_sh
         st.write(f'Error: {e}')
 
 # Streamlit app
-st.title('Google Sheets Processing App')
+st.title('New Description From TFM')
 
 source_sheet_id = st.text_input('Source Sheet ID')
 source_sheet_name = st.text_input('Source Sheet Name')
 target_sheet_id = st.text_input('Target Sheet ID')
 target_sheet_name = st.text_input('Target Sheet Name')
-specific_values = st.text_input('Specific Values (comma-separated)', 'Bacnet_device').split(',')
+specific_values = st.text_input('Specific Rules to override (comma-separated)', 'Bacnet_device').split(',')
 tfm_sys = st.number_input('TFM System Value', min_value=0, value=360)
+tfm_sub_sys = st.number_input('TFM System Index', min_value=0, value=1)
 
 if st.button('Process Files'):
     process_files(source_sheet_id, source_sheet_name, target_sheet_id, target_sheet_name, specific_values, tfm_sys)
