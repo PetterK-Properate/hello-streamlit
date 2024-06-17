@@ -44,7 +44,7 @@ def process_files(source_sheet_id, source_sheet_name, target_sheet_id, target_sh
 
 # Example usage
 source_sheet_id = '1tgaca6MmB3YIKXblBu6c_jIWrBAeWwmarv7LAcCCylU'
-source_sheet_name = 'NB2_edit'
+source_sheet_name = 'Ark1'
 target_sheet_id = '1u_YYF_SafcDt8AzuK_mQdAU7vek49txPPlmxC9E_1zo'
 target_sheet_name = 'Description'
 specific_values = ['Bacnet_device']
